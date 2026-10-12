@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pilih Ekspresimu / Cek Perasaan Hari Ini</title>
+    <!-- Tailwind CSS for modern responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti for Happy celebration effects -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Chart.js for Teacher Summary Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts for child-friendly typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        body {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .bg-animated {
+            background: linear-gradient(-45deg, #a1c4fd, #c2e9fb, #ffecd2, #fcb69f);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Large touch-friendly bounce animations for smartboard */
+        .emoji-btn {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .emoji-btn:active {
+            transform: scale(0.92) translateY(8px);
+        }
+
+        @media (hover: hover) {
+            .emoji-btn:hover {
+                transform: scale(1.05) translateY(-8px);
+            }
+        }
+
+        .card-shadow {
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .floating-anim {
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 3px solid rgba(255, 255, 255, 0.85);
+        }
+
+        .sparkle-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 1.5rem;
+            pointer-events: none;
+            background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.6) 0%, transparent 50%);
+        }
+    </style>
+</head>
+<body class="bg-animated min-h-screen text-slate-800 flex flex-col justify-between p-4 md:p-6 overflow-x-hidden">
+
+    <header class="max-w-6xl w-full mx-auto flex justify-between items-center bg-white/80 backdrop-blur-md px-6 py-4 rounded-3xl border-2 border-white shadow-lg z-10">
+        <div class="flex items-center space-x-3">
+            <span class="text-4xl md:text-5xl">🏫</span>
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-indigo-900 tracking-wide">Pilih Ekspresimu!</h1>
+                <p class="text-xs md:text-sm font-bold text-slate-500">Cek Perasaan Hari Ini • Papan Interaktif Kelas</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Counter Badge -->
+            <div class="bg-indigo-100 border-2 border-indigo-300 text-indigo-900 px-5 py-2.5 rounded-2xl font-black text-lg md:text-xl flex items-center shadow-sm">
+                👥 Siswa: <span id="total-count" class="ml-2 text-2xl text-indigo-600">0</span>
+            </div>
+            
+            <!-- Teacher Rekap Button -->
+            <button onclick="promptTeacherPin()" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 active:scale-95 text-white font-extrabold px-5 py-2.5 md:px-6 md:py-3 rounded-2xl shadow-md transition-all text-base md:text-lg flex items-center gap-2 border-2 border-indigo-200 cursor-pointer">
+                🔒 <span>Rekap Guru</span>
+            </button>
+        </div>
+    </header>
+
+    <main id="screen-select" class="max-w-6xl w-full mx-auto my-auto flex flex-col items-center justify-center transition-all duration-300 py-6">
+        
+        <!-- Banner Heading -->
+        <div class="text-center mb-8 floating-anim">
+            <h2 class="text-3xl md:text-5xl font-black text-indigo-950 drop-shadow-sm mb-3">
+                Bagaimana Perasaanmu Hari Ini? ✨
+            </h2>
+            <p class="text-lg md:text-2xl text-slate-700 font-extrabold bg-white/70 inline-block px-8 py-2 rounded-full border-2 border-white shadow-sm">
+                Sentuh salah satu emoji di bawah untuk memilih!
+            </p>
+        </div>
+
+        <!-- 3 Interactive Emoji Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 w-full px-2">
+            
+            <!-- 1. BAHAGIA -->
+            <button onclick="selectEmoji('happy')" class="emoji-btn relative group bg-gradient-to-b from-yellow-100 via-amber-100 to-amber-200 border-4 border-yellow-400 p-8 rounded-3xl card-shadow flex flex-col items-center justify-center cursor-pointer overflow-hidden min-h-[280px]">
+                <div class="sparkle-overlay"></div>
+                <div class="text-8xl md:text-9xl mb-3 filter drop-shadow-lg group-hover:scale-110 transition-transform">😊</div>
+                <span class="text-3xl md:text-4xl font-black text-amber-950 tracking-wide">Bahagia</span>
+                <span class="text-sm md:text-base font-extrabold text-amber-800 mt-2 bg-yellow-300/80 px-5 py-1.5 rounded-full border border-yellow-400">
+                    Bahagia
+                </span>
+            </button>
+
+            <!-- 2. BIASA SAJA (Keterangan diubah menjadi: Kurang menarik) -->
+            <button onclick="selectEmoji('neutral')" class="emoji-btn relative group bg-gradient-to-b from-sky-100 via-slate-100 to-sky-200 border-4 border-sky-400 p-8 rounded-3xl card-shadow flex flex-col items-center justify-center cursor-pointer overflow-hidden min-h-[280px]">
+                <div class="sparkle-overlay"></div>
+                <div class="text-8xl md:text-9xl mb-3 filter drop-shadow-lg group-hover:scale-110 transition-transform">😐</div>
+                <span class="text-3xl md:text-4xl font-black text-slate-900 tracking-wide">Biasa Saja</span>
+                <span class="text-sm md:text-base font-extrabold text-sky-800 mt-2 bg-sky-200/90 px-5 py-1.5 rounded-full border border-sky-300">
+                    Kurang menarik
+                </span>
+            </button>
+
+            <!-- 3. SEDIH -->
+            <button onclick="selectEmoji('sad')" class="emoji-btn relative group bg-gradient-to-b from-indigo-100 via-purple-100 to-indigo-200 border-4 border-indigo-400 p-8 rounded-3xl card-shadow flex flex-col items-center justify-center cursor-pointer overflow-hidden min-h-[280px]">
+                <div class="sparkle-overlay"></div>
+                <div class="text-8xl md:text-9xl mb-3 filter drop-shadow-lg group-hover:scale-110 transition-transform">😢</div>
+                <span class="text-3xl md:text-4xl font-black text-indigo-950 tracking-wide">Sedih</span>
+                <span class="text-sm md:text-base font-extrabold text-indigo-800 mt-2 bg-indigo-200/90 px-5 py-1.5 rounded-full border border-indigo-300">
+                    Sedih
+                </span>
+            </button>
+
+        </div>
+    </main>
+
+    <div id="modal-feedback" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="glass-panel max-w-2xl w-full p-8 md:p-10 rounded-3xl text-center card-shadow border-4 border-white">
+            <div id="feedback-emoji" class="text-9xl mb-4 floating-anim filter drop-shadow-md">🌟</div>
+            <h3 id="feedback-title" class="text-4xl md:text-5xl font-black mb-3 text-slate-800">Terima Kasih!</h3>
+            <p id="feedback-message" class="text-xl md:text-2xl font-extrabold text-slate-700 mb-8 leading-relaxed">
+                Pilihanmu telah tersimpan!
+            </p>
+            
+            <button onclick="nextStudent()" class="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-extrabold text-2xl px-10 py-5 rounded-2xl shadow-xl border-2 border-emerald-300 transition-all flex items-center justify-center gap-3 mx-auto cursor-pointer">
+                <span>Siswa Berikutnya</span> ➔
+            </button>
+
+            <p class="text-sm font-extrabold text-slate-400 mt-6">Atau layar berganti otomatis dalam 3 detik...</p>
+        </div>
+    </div>
+
+    <div id="modal-pin" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="glass-panel max-w-md w-full p-6 rounded-3xl text-center card-shadow border-4 border-white">
+            <div class="text-5xl mb-2">🔑</div>
+            <h3 class="text-2xl font-black text-indigo-950 mb-1">Akses Khusus Guru</h3>
+            <p class="text-sm font-bold text-slate-600 mb-4">Masukkan PIN untuk membuka rekapitulasi (Default PIN: <span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-black">1234</span>)</p>
+
+            <input type="password" id="pin-input" maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="****" class="w-full text-center text-3xl font-black tracking-widest py-3 rounded-2xl border-2 border-slate-300 focus:border-indigo-500 focus:outline-none mb-4 bg-white/90">
+
+            <p id="pin-error" class="text-red-600 font-extrabold text-sm mb-3 hidden">❌ PIN Salah! Silakan coba lagi.</p>
+
+            <div class="flex gap-3">
+                <button onclick="closePinModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-extrabold py-3 rounded-2xl text-base transition-all cursor-pointer">
+                    Batal
+                </button>
+                <button onclick="verifyPin()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3 rounded-2xl text-base transition-all cursor-pointer">
+                    Buka Rekap
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <main id="screen-dashboard" class="max-w-6xl w-full mx-auto my-auto hidden flex-col transition-all duration-300 py-4">
+        <div class="glass-panel p-6 md:p-8 rounded-3xl card-shadow w-full">
+            
+            <!-- Dashboard Header -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b-2 border-slate-200">
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-black text-indigo-950">📊 Rekapitulasi Perasaan Kelas</h2>
+                    <p class="text-slate-600 font-bold text-sm md:text-base">Hasil pilihan emosional siswa pada sesi pembelajaran hari ini</p>
+                </div>
+                <button onclick="closeDashboard()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-black px-5 py-2.5 rounded-2xl text-base md:text-lg transition-all self-end md:self-auto cursor-pointer">
+                    ✖ Kembali ke Layar Siswa
+                </button>
+            </div>
+
+            <!-- Reflection Message Box -->
+            <div id="reflection-card" class="bg-gradient-to-r from-amber-100 to-orange-100 border-2 border-amber-300 p-5 rounded-2xl mb-6 shadow-sm">
+                <div class="flex items-start gap-4">
+                    <span class="text-4xl">💡</span>
+                    <div>
+                        <h4 class="text-lg md:text-xl font-black text-amber-950">Refleksi Pembelajaran Hari Ini:</h4>
+                        <p id="reflection-text" class="text-base md:text-lg font-bold text-amber-900 mt-1">Belum ada data masuk dari siswa.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid Content: Chart + Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                
+                <!-- Chart Area (7 Cols) -->
+                <div class="md:col-span-7 bg-white/90 p-4 rounded-2xl border border-slate-200 shadow-inner h-64 md:h-80 flex items-center justify-center">
+                    <canvas id="rekapChart"></canvas>
+                </div>
+
+                <!-- Stats Cards (5 Cols) -->
+                <div class="md:col-span-5 flex flex-col gap-3">
+                    
+                    <!-- Happy Card -->
+                    <div class="bg-amber-50 border-2 border-amber-300 p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <span class="text-4xl">😊</span>
+                            <div>
+                                <p class="text-lg font-extrabold text-amber-950">Bahagia</p>
+                                <p id="happy-percent" class="text-xs font-bold text-amber-700">0% dari total</p>
+                            </div>
+                        </div>
+                        <span id="happy-count" class="text-3xl font-black text-amber-600">0</span>
+                    </div>
+
+                    <!-- Neutral Card with updated label -->
+                    <div class="bg-sky-50 border-2 border-sky-300 p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <span class="text-4xl">😐</span>
+                            <div>
+                                <p class="text-lg font-extrabold text-slate-900">Biasa Saja</p>
+                                <p class="text-xs font-extrabold text-sky-800">(Kurang menarik)</p>
+                                <p id="neutral-percent" class="text-xs font-bold text-slate-500">0% dari total</p>
+                            </div>
+                        </div>
+                        <span id="neutral-count" class="text-3xl font-black text-sky-600">0</span>
+                    </div>
+
+                    <!-- Sad Card -->
+                    <div class="bg-indigo-50 border-2 border-indigo-300 p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <span class="text-4xl">😢</span>
+                            <div>
+                                <p class="text-lg font-extrabold text-indigo-950">Sedih</p>
+                                <p id="sad-percent" class="text-xs font-bold text-indigo-700">0% dari total</p>
+                            </div>
+                        </div>
+                        <span id="sad-count" class="text-3xl font-black text-indigo-600">0</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Footer Action Buttons -->
+            <div class="mt-8 pt-4 border-t-2 border-slate-200 flex flex-wrap justify-between items-center gap-4">
+                <button onclick="confirmReset()" class="bg-red-100 hover:bg-red-200 text-red-700 font-extrabold border-2 border-red-300 px-6 py-3 rounded-2xl transition-all flex items-center gap-2 text-base cursor-pointer">
+                    🗑️ Mulai Sesi Baru / Reset Data
+                </button>
+                <button onclick="closeDashboard()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 py-3 rounded-2xl shadow-lg transition-all text-lg cursor-pointer">
+                    Kembali Ke Layar Kelas ➔
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // State management
+        const counts = {
+            happy: 0,
+            neutral: 0,
+            sad: 0
+        };
+
+        const TEACHER_PIN = "1234"; // Security PIN for teacher access
+        let autoResetTimer = null;
+        let chartInstance = null;
+
+        // Web Audio API Synthesizer for touch sound effects
+        function playSound(type) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                const now = ctx.currentTime;
+
+                if (type === 'happy') {
+                    // Bright happy double pitch
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'neutral') {
+                    // Soft relaxed pitch
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'sad') {
+                    // Gentle comforting pitch drop
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(360, now);
+                    osc.frequency.exponentialRampToValueAtTime(240, now + 0.35);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                }
+            } catch (e) {
+                console.log("Audio context initialized");
+            }
+        }
+
+        // Handle Emoji Selection by Student
+        function selectEmoji(emotion) {
+            counts[emotion]++;
+            updateTotalBadge();
+            playSound(emotion);
+
+            const modal = document.getElementById('modal-feedback');
+            const emojiEl = document.getElementById('feedback-emoji');
+            const titleEl = document.getElementById('feedback-title');
+            const msgEl = document.getElementById('feedback-message');
+
+            if (emotion === 'happy') {
+                emojiEl.textContent = '😊';
+                titleEl.textContent = 'Wah, Hebat!';
+                titleEl.className = 'text-4xl md:text-5xl font-black mb-3 text-amber-600';
+                msgEl.textContent = 'Senang melihatmu merasa bahagia hari ini! Pertahankan senyumanmu ya! 🌟';
+                
+                // Trigger Confetti effect
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            } else if (emotion === 'neutral') {
+                emojiEl.textContent = '😐';
+                titleEl.textContent = 'Terima Kasih!';
+                titleEl.className = 'text-4xl md:text-5xl font-black mb-3 text-sky-600';
+                msgEl.textContent = 'Terima kasih telah memilih! Semoga sesi belajar berikutnya bisa terasa lebih seru dan menarik untukmu! ✨';
+            } else if (emotion === 'sad') {
+                emojiEl.textContent = '🤗';
+                titleEl.textContent = 'Peluk Hangat!';
+                titleEl.className = 'text-4xl md:text-5xl font-black mb-3 text-indigo-600';
+                msgEl.textContent = 'Tidak apa-apa merasa sedih. Kita semua di sini siap menyemangatimu hari ini! 💙';
+            }
+
+            // Display Feedback Modal
+            modal.classList.remove('hidden');
+
+            // Auto advance to next student after 3.5 seconds
+            clearTimeout(autoResetTimer);
+            autoResetTimer = setTimeout(() => {
+                nextStudent();
+            }, 3500);
+        }
+
+        // Clear modal and prepare for next student
+        function nextStudent() {
+            clearTimeout(autoResetTimer);
+            document.getElementById('modal-feedback').classList.add('hidden');
+        }
+
+        // Update Total Count Badge in Header
+        function updateTotalBadge() {
+            const total = counts.happy + counts.neutral + counts.sad;
+            document.getElementById('total-count').textContent = total;
+        }
+
+        // PIN Security Prompt
+        function promptTeacherPin() {
+            document.getElementById('pin-input').value = '';
+            document.getElementById('pin-error').classList.add('hidden');
+            document.getElementById('modal-pin').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('pin-input').focus();
+            }, 100);
+        }
+
+        function closePinModal() {
+            document.getElementById('modal-pin').classList.add('hidden');
+        }
+
+        function verifyPin() {
+            const inputVal = document.getElementById('pin-input').value;
+            if (inputVal === TEACHER_PIN) {
+                closePinModal();
+                showDashboard();
+            } else {
+                document.getElementById('pin-error').classList.remove('hidden');
+            }
+        }
+
+        // Allow 'Enter' key on PIN input
+        document.getElementById('pin-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyPin();
+            }
+        });
+
+        // Show Dashboard Screen
+        function showDashboard() {
+            const selectScreen = document.getElementById('screen-select');
+            selectScreen.classList.add('hidden');
+            selectScreen.classList.remove('flex');
+            
+            const dashScreen = document.getElementById('screen-dashboard');
+            dashScreen.classList.remove('hidden');
+            dashScreen.classList.add('flex');
+
+            updateDashboardData();
+        }
+
+        // Close Dashboard Screen
+        function closeDashboard() {
+            const dashScreen = document.getElementById('screen-dashboard');
+            dashScreen.classList.add('hidden');
+            dashScreen.classList.remove('flex');
+
+            const selectScreen = document.getElementById('screen-select');
+            selectScreen.classList.remove('hidden');
+            selectScreen.classList.add('flex');
+        }
+
+        function updateDashboardData() {
+            const total = counts.happy + counts.neutral + counts.sad;
+
+            // Numbers
+            document.getElementById('happy-count').textContent = counts.happy;
+            document.getElementById('neutral-count').textContent = counts.neutral;
+            document.getElementById('sad-count').textContent = counts.sad;
+
+            // Percentages
+            const happyPct = total > 0 ? Math.round((counts.happy / total) * 100) : 0;
+            const neutralPct = total > 0 ? Math.round((counts.neutral / total) * 100) : 0;
+            const sadPct = total > 0 ? Math.round((counts.sad / total) * 100) : 0;
+
+            document.getElementById('happy-percent').textContent = `${happyPct}% dari total siswa`;
+            document.getElementById('neutral-percent').textContent = `${neutralPct}% dari total siswa`;
+            document.getElementById('sad-percent').textContent = `${sadPct}% dari total siswa`;
+
+            // Reflection message logic
+            const reflectionText = document.getElementById('reflection-text');
+            if (total === 0) {
+                reflectionText.textContent = "Belum ada siswa yang memilih ekspresi emosi pada sesi ini.";
+            } else {
+                if (counts.happy >= counts.neutral && counts.happy >= counts.sad) {
+                    reflectionText.textContent = "🥳 Sebagian besar siswa merasa BAHAGIA! Suasana kelas sangat ceria dan siap untuk aktivitas belajar interaktif!";
+                } else if (counts.neutral >= counts.happy && counts.neutral >= counts.sad) {
+                    reflectionText.textContent = "😐 Sebagian besar siswa merasa BIASA SAJA (Kurang menarik). Cobalah menyisipkan ice breaking atau metode belajar variatif agar siswa lebih bersemangat!";
+                } else {
+                    reflectionText.textContent = "💙 Beberapa siswa merasa SEDIH hari ini. Luangkan waktu sejenak untuk memberikan motivasi hangat atau apresiasi di awal kelas.";
+                }
+            }
+
+            // Render Chart.js
+            const ctx = document.getElementById('rekapChart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['😊 Bahagia', '😐 Biasa saja', '😢 Sedih'],
+                    datasets: [{
+                        label: 'Jumlah Siswa',
+                        data: [counts.happy, counts.neutral, counts.sad],
+                        backgroundColor: [
+                            '#f59e0b', // Amber
+                            '#38bdf8', // Sky
+                            '#6366f1'  // Indigo
+                        ],
+                        borderRadius: 14,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            titleFont: { family: 'Fredoka', size: 16 },
+                            bodyFont: { family: 'Fredoka', size: 14 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                font: { family: 'Fredoka', size: 14, weight: 'bold' }
+                            },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        x: {
+                            ticks: {
+                                font: { family: 'Fredoka', size: 16, weight: 'bold' }
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Reset Data Confirmation
+        function confirmReset() {
+            const total = counts.happy + counts.neutral + counts.sad;
+            if (total === 0) {
+                return;
+            }
+
+            const sure = confirm("Apakah Anda yakin ingin mereset seluruh data siswa dan memulai sesi baru?");
+            if (sure) {
+                counts.happy = 0;
+                counts.neutral = 0;
+                counts.sad = 0;
+                updateTotalBadge();
+                updateDashboardData();
+            }
+        }
+    </script>
+</body>
+</html>
